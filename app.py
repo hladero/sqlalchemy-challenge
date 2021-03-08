@@ -49,7 +49,7 @@ def home_page():
         f"/api/v1.0/stations <br/>"
         f"/api/v1.0/tobs <br/>"
         f"/api/v1.0/start<br/>"
-        f"/api/v1.0/end<br/>"
+        f"/api/v1.0/start/end <br/>"
         f"When given the start only, calculate `TMIN`, `TAVG`, and `TMAX` for all dates greater than and equal to the start date <br/> "
         "When given the start and the end date, calculate the `TMIN`, `TAVG`, and `TMAX` for dates between the start and end date inclusive <br/>"
     )
@@ -63,11 +63,11 @@ def precipitation():
     result = session.query(measurement.date, measurement.prcp).filter(measurement.date > prevYear).all()
     
     rain_data = []
-    for rain in result:
-        row = {}
-        row["date"] = result[0]
-        row["prcp"] = result[1]
-        rain_data.append(row)
+    for x in result:
+        data = {}
+        data["date"] = result[0]
+        data["prcp"] = result[1]
+        rain_data.append(data)
     return jsonify(rain_data)
 
 ###############################################################################
@@ -83,26 +83,35 @@ def stations():
 #Define what to do when a user hits /api/v1.0/tobs route
 @app.route("/api/v1.0/tobs")
 def tobs():
-    most_active_stations = session.query(measurement.station, func.count(measurement.station))
-    Dates=session.query(measurement.date).filter(measurement.date == most_active_stations[0][0]).all()
-#Date[0]
-    Temp=session.query(measurement.tobs).filter(measurement.station == most_active_stations[0][0]).all()
-#Temp[0]
-
+    most_recent_date = session.query(measurement.date).order_by(measurement.date.desc()).first()[0]
+    prevYear = dt.datetime.strptime(most_recent_date,'%Y-%m-%d') - dt.timedelta(366)
+    result1 = session.query(measurement.date, measurement.prcp).filter(measurement.date > prevYear).all()
+    most_active_stations = session.query(measurement.station, func.count(measurement.station)).\
+    group_by(measurement.station).order_by(func.count(measurement.station).desc()).all()
+    result2=session.query(measurement.date, measurement.tobs).filter(measurement.date>prevYear).all()
+    
 #Return a JSON list of temperature observations (TOBS) for the previous year.
-    temperature_observation=[]
-    for x in Temp:
-        row = {}
-        row["tobs"] = Temp[0]
-        temperature_observation.append(row)
-    return jsonify(temperature_observation)
+    return jsonify(result2)
 
 ###############################################################################
-#Define what to do when a user hits /api/v1.0/start<br/> route
+#Define what to do when a user hits /api/v1.0/start route
 @app.route("/api/v1.0/start")
 def startdate():
-             Temp=session.query(func.min(measurement.tobs),func.max(measurement.tobs),func.avg(measurement.tobs)).filter(measurement.date>=date).all()
+    most_recent_date = session.query(measurement.date).order_by(measurement.date.desc()).first()[0]
+    prevYear = dt.datetime.strptime(most_recent_date,'%Y-%m-%d') - dt.timedelta(366)
+    Temp=session.query(func.min(measurement.tobs),func.max(measurement.tobs),func.avg(measurement.tobs))\
+.filter(measurement.date >= prevYear).all()
     return jsonify(Temp)
+
+###############################################################################
+#Define what to do when a user hits /api/v1.0/<start>/<end> route
+@app.route("/api/v1.0/start/end")
+def start_end_date():
+    end_date = session.query(measurement.date).order_by(measurement.date.desc()).first()[0]
+    start_date = dt.datetime.strptime(end_date,'%Y-%m-%d') - dt.timedelta(366)
+    Temp1=session.query(func.min(measurement.tobs),func.max(measurement.tobs),func.avg(measurement.tobs))\
+.filter(measurement.date.between(start_date ,end_date)).all()
+    return jsonify(Temp1)
 
 
 if __name__ == "__main__":
