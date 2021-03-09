@@ -22,7 +22,6 @@ engine = create_engine("sqlite:///Resources/hawaii.sqlite")
 # reflect  database into a ORM
 Base = automap_base()
 Base.prepare(engine, reflect=True)
-Base.classes.keys()
 # Map classes Measurement
 measurement=Base.classes.measurement
 # Map classes Station
@@ -51,7 +50,7 @@ def home_page():
         f"/api/v1.0/start<br/>"
         f"/api/v1.0/start/end <br/>"
         f"When given the start only, calculate `TMIN`, `TAVG`, and `TMAX` for all dates greater than and equal to the start date <br/> "
-        "When given the start and the end date, calculate the `TMIN`, `TAVG`, and `TMAX` for dates between the start and end date inclusive <br/>"
+        f"When given the start and the end date, calculate the `TMIN`, `TAVG`, and `TMAX` for dates between the start and end date inclusive <br/>"
     )
     
 
